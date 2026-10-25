@@ -1,0 +1,11 @@
+# CLion / CMake
+.idea/
+cmake-build-*/
+
+# PlatformIO
+.pio/
+.vscode/
+
+# System
+Thumbs.db
+.DS_Store
