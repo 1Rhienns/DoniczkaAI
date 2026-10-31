@@ -9,3 +9,6 @@ cmake-build-*/
 # System
 Thumbs.db
 .DS_Store
+
+# Hasla do WiFi i brokera - NIGDY na GitHuba
+src/secrets.h
