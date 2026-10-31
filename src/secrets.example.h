@@ -5,9 +5,8 @@
 #define WIFI_SSID      ""
 #define WIFI_PASSWORD  ""
 
-// Broker MQTT: adres IP (np. "192.168.1.50") albo nazwa hosta.
-// test.mosquitto.org to PUBLICZNY broker testowy - dane widzi kazdy. Tylko do testow!
+// Broker MQTT: adres IP (np. "192.168.1.50") albo  nazwa hosta.
 #define MQTT_HOST      "test.mosquitto.org"
-#define MQTT_PORT      1883      // 1883 = bez szyfrowania, 8883 = TLS (wymaga zmian w kodzie)
-#define MQTT_USER      ""        // pusty = broker bez logowania
+#define MQTT_PORT      1883
+#define MQTT_USER      ""
 #define MQTT_PASSWORD  ""
