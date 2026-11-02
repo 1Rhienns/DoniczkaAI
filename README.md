@@ -56,8 +56,51 @@ Wszystkie wejścia analogowe są na ADC1 (GPIO32–39), więc działają przy w�
 
 | Temat | Treść |
 |---|---|
-| `doniczkaAI/XXXXXX/dane` | raport JSON co 6 h (retain) |
-| `doniczkaAI/XXXXXX/status` | `online` / `offline` (offline publikuje broker, gdy ESP zniknie) |
-| `doniczkaAI/XXXXXX/alarm` | `brak_wody` / `ogien` / `ok`, od razu przy zmianie |
+| `doniczkaAI/XXXXXX/dane` | telemetria JSON co 6 h (retain) |
+| `doniczkaAI/XXXXXX/events` | dziennik zdarzeń JSON: awaria / powrót czujnika, od razu |
+| `doniczkaAI/XXXXXX/status` | tekst `online` / `offline` (offline publikuje broker, gdy ESP zniknie) |
+| `doniczkaAI/XXXXXX/alarm` | tekst `NO_WATER` / `FIRE` / `NONE`, od razu przy zmianie (retain) |
 
-Bez sieci raporty czekają w pamięci flash i wychodzą, gdy połączenie wróci. Sterowanie pompą nie zależy od sieci.
+Bez sieci telemetria i zdarzenia czekają w pamięci flash (max 40 raportów, 100 zdarzeń) i wychodzą, gdy połączenie wróci. Sterowanie pompą nie zależy od sieci.
+
+### Telemetria
+
+```json
+{
+  "ts": 1793393389,
+  "uptime_s": 86522,
+  "soil": { "top": 50, "middle": 40, "bottom": 30 },
+  "pump_block": "NONE",
+  "air_t": 21.5,
+  "air_h": 48,
+  "air_p": 1013,
+  "lux": null,
+  "uvi": null,
+  "fire": null
+}
+```
+
+| Pole | Opis |
+|---|---|
+| `ts` | czas UNIX w sekundach (UTC); `null`, gdy zegar nie zsynchronizowany z NTP |
+| `uptime_s` | sekundy od włączenia ESP (zeruje się przy restarcie i co ~49,7 dnia) |
+| `soil.top/middle/bottom` | wilgotność gleby w % (czujniki na GPIO34 / 35 / 32) |
+| `pump_block` | `NONE`, `NO_WATER`, `FIRE`, `COOLDOWN` (przerwa po 60 s pracy), `SENSOR_ERROR` (żaden czujnik gleby nie działa – pompa stoi) |
+| `air_t`, `air_h`, `air_p` | temperatura °C, wilgotność %, ciśnienie hPa (BME280) |
+| `lux`, `uvi` | światło w lx, indeks UV |
+| `fire` | `true` / `false` |
+
+`null` w polu pomiarowym = brak wiarygodnej wartości (czujnik wyłączony, uszkodzony albo poza zakresem). Przyczynę podaje dziennik zdarzeń. Średnia wilgotności gleby do sterowania pompą liczona jest tylko z działających czujników.
+
+### Dziennik zdarzeń
+
+```json
+{"ts": 1793393389, "uptime_s": 31, "sensor": "air", "state": "NOT_FOUND"}
+```
+
+| Pole | Wartości |
+|---|---|
+| `sensor` | `soil_top`, `soil_middle`, `soil_bottom`, `air`, `lux`, `uvi` |
+| `state` | `OK` (czujnik wrócił), `NOT_FOUND` (BME280 nie odpowiada na I2C), `READ_FAILED` (błąd pomiaru), `OUT_OF_RANGE` (wynik poza zakresem pomiarowym), `WIRE_BROKEN` (napięcie czujnika gleby < 0,3 V lub > 3,1 V) |
+
+Zdarzenie wysyłane jest tylko przy zmianie stanu, gdy nowy stan utrzymuje się 30 s (`SENSOR_STABLE_MS`), i najwyżej raz na 5 min dla danego czujnika (`SENSOR_EVENT_GAP_MS`). Nie da się wykryć czujnika gleby wyjętego z ziemi (wygląda jak sucha gleba) ani zerwanego przewodu pływaka (wygląda jak brak wody – pompa staje).
